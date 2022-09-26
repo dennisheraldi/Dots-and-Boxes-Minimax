@@ -1,27 +1,48 @@
+from typing import Literal, Tuple
 import numpy as np
 from GameState import GameState
 from player import Player
 from tile import Tile, Tiles
-
-from util import todo
 
 Flag = list[list[bool]]
 Chain = list[Tile]
 Chains = list[Chain]
 Loops = list[Chain]
 
+Orientation = Literal["row", "col"]
+Position = Tuple[int, int]
+Move = Tuple[Orientation, Position]
+Moves = list[Move]
 
-class PseudoBoard(GameState):
+
+class PseudoBoard:
 
     loops: list[list[Tile]]
     chains: list[list[Tile]]
     dirty: bool
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    move_stack: Moves
+    square_stack: list[Tuple[list[Position], Player]]
+    turn_stack: list[Player]
+
+    board_status: list[list[int]]
+    row_status: list[list[int]]
+    col_status: list[list[int]]
+    player1_turn: bool
+
+    def __init__(self, board_status, row_status, col_status, player1_turn):
+        self.board_status = board_status
+        self.row_status = row_status
+        self.col_status = col_status
+        self.player1_turn = player1_turn
+
         self.loops = []
         self.chains = []
         self.dirty = True
+
+        self.move_stack = []
+        self.square_stack = []
+        self.turn_stack = []
 
     def __str__(self):
         rep = ""
@@ -59,10 +80,114 @@ class PseudoBoard(GameState):
             state.player1_turn
         )
 
+    def play(self, orientation, position):
+        # type: (Orientation, Position) -> PseudoBoard
+
+        self.move_stack.append((orientation, position))
+
+        tile1 = position
+
+        if orientation == "row":
+            self.row_status[position] = 1
+            tile2 = (position[0] - 1, position[1])
+        else:
+            self.col_status[position] = 1
+            tile2 = (position[0], position[1] - 1)
+
+        player = self.player_to_play()
+        square = ([], player)
+        should_switch = True
+        if PseudoBoard.valid_tile(tile1) and self.openings_count(tile1) == 0:
+            self.board_status[tile1] = player.score()
+            square[0].append(tile1)
+            should_switch = False
+        if PseudoBoard.valid_tile(tile2) and self.openings_count(tile2) == 0:
+            self.board_status[tile2] = player.score()
+            square[0].append(tile2)
+            should_switch = False
+
+        self.square_stack.append(square)
+        self.turn_stack.append(player)
+
+        if should_switch:
+            self.switch()
+
+        self.dirty = True
+
+        return self
+
+    def revert(self):
+        # type: () -> PseudoBoard
+
+        (orientation, position) = self.move_stack.pop()
+
+        if orientation == "row":
+            self.row_status[position] = 0
+        else:
+            self.col_status[position] = 0
+
+        (positions, _) = self.square_stack.pop()
+        for position in positions:
+            self.board_status[position] = 0
+
+        if len(positions) == 0:
+            self.switch()
+
+        self.turn_stack.pop()
+
+        return self
+
+    def ended(self):
+        # type: () -> bool
+
+        return len(self.available_moves()) == 0
+
+    def switch(self):
+        # type: () -> None
+
+        self.player1_turn = not self.player1_turn
+
     def eval(self, player):
         # type: (Player) -> int
 
-        todo("Implement evaluation (heuristic minimax) function.")
+        return self.squares(player) - self.squares(player.opponent())
+
+    def squares(self, player):
+        # type: (Player) -> int
+
+        squares = 0
+
+        for x in range(3):
+            for y in range(3):
+                if self.board_status[x, y] == player.score():
+                    squares += 1
+
+        return squares
+
+    def available_moves(self):
+        # type: () -> Moves
+
+        moves = []
+
+        for x in range(4):
+            for y in range(3):
+                if not self.row_status[x, y]:
+                    moves.append(("row", (x, y)))
+
+        for x in range(3):
+            for y in range(4):
+                if not self.col_status[x, y]:
+                    moves.append(("col", (x, y)))
+
+        return moves
+
+    def player_to_play(self):
+        # type: () -> Player
+
+        if self.player1_turn:
+            return Player.ODD
+        else:
+            return Player.EVEN
 
     def chainable_tiles(self):
         # type: () -> Tiles
@@ -196,6 +321,7 @@ class PseudoBoard(GameState):
         # type: (Tile) -> int
 
         (x, y) = tile
+
         closings = self.row_status[x, y] + \
             self.row_status[x + 1, y] + \
             self.col_status[x, y] + \
@@ -230,6 +356,14 @@ class PseudoBoard(GameState):
 
         return neighbors
 
+    @staticmethod
+    def valid_tile(tile):
+        # type: (Tile) -> bool
+
+        (x, y) = tile
+
+        return x >= 0 and x < 3 and y >= 0 and y < 3
+
 
 def h_line(cond):
     return "---" if cond else "   "
@@ -241,38 +375,3 @@ def v_line(cond):
 
 def player_mark(player):
     return " " if player is None else str(player)
-
-
-if __name__ == "__main__":
-    board_status = np.zeros(
-        shape=(3, 3))
-    row_status = np.zeros(shape=(4, 3))
-    col_status = np.zeros(shape=(3, 4))
-
-    row_status[0, 0] = 1
-    row_status[0, 1] = 1
-    row_status[0, 2] = 1
-
-    row_status[1, 0] = 1
-    row_status[1, 1] = 1
-    row_status[1, 2] = 1
-
-    row_status[3, 0] = 1
-    row_status[3, 2] = 1
-
-    col_status[1, 0] = 1
-    col_status[2, 1] = 1
-    col_status[1, 2] = 1
-    col_status[2, 2] = 1
-
-    state = GameState(
-        board_status,
-        row_status,
-        col_status,
-        True
-    )
-
-    board = PseudoBoard.of(state)
-    board.calculate_chains()
-
-    print()

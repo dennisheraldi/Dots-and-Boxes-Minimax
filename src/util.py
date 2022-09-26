@@ -3,7 +3,7 @@ def todo(message):
 
 
 def unreachable(message):
-    raise "Unreachable: %s" % message
+    raise RuntimeError(message)
 
 
 DEBUG = False

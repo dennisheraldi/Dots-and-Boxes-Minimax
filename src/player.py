@@ -11,6 +11,11 @@ class Player(Enum):
             case 4: return Player.EVEN
             case _: return None
 
+    def score(self):
+        match self:
+            case Player.ODD: return -4
+            case Player.EVEN: return 4
+
     def opponent(self):
         match self:
             case Player.ODD: return Player.EVEN
