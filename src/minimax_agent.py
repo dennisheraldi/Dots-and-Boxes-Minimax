@@ -66,7 +66,7 @@ class MinimaxAgent:
             unreachable("Agent should not call _max for opponent.")
 
         if board.ended() or depth == self.max_depth:
-            return (None, board.eval(self.turn))
+            return (None, board.minimax(self.turn))
 
         action = None
         v = MIN
@@ -109,7 +109,7 @@ class MinimaxAgent:
             unreachable("Agent should not call _min for self.")
 
         if board.ended() or depth == self.max_depth:
-            return (None, board.eval(self.turn))
+            return (None, board.minimax(self.turn))
 
         action = None
         v = MAX

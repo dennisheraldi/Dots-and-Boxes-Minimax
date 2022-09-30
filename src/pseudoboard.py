@@ -3,6 +3,7 @@ import numpy as np
 from GameState import GameState
 from player import Player
 from tile import Tile, Tiles
+from util import DEBUG, VERBOSE
 
 Flag = list[list[bool]]
 Chain = list[Tile]
@@ -150,7 +151,84 @@ class PseudoBoard:
     def eval(self, player):
         # type: (Player) -> int
 
+        # !! Too slow for python
+        factor = 1 if self.player_to_play() == player else -1
+        return self.squares(player) - self.squares(player.opponent()) + (
+            self.chain_value() + self.free_squares() + self.loop_value()
+        ) * factor
+
+    def minimax(self, player):
+        # type: (Player) -> int
+
         return self.squares(player) - self.squares(player.opponent())
+
+    def free_squares(self):
+        # type: () -> int
+
+        sq = 0
+        for x in range(3):
+            for y in range(3):
+                if self.openings_count((x, y)) == 1:
+                    sq += 1
+
+        return sq
+
+    def chain_value(self, debug=False):
+        # type: (bool) -> int
+
+        if self.dirty:
+            self.calculate_chains()
+
+        noscs = []
+        oscs = []
+        nolcs = []
+        olcs = []
+
+        for chain in self.chains:
+            end1 = chain[0]
+            end2 = chain[-1]
+
+            a = self.openings_count(end1)
+            b = self.openings_count(end2)
+            length = len(chain)
+
+            if length == 2:
+                if a == 2 and b == 2:
+                    # Open short chain
+                    oscs.append(length)
+                else:
+                    noscs.append(length)
+            else:
+                if a == 2 and b == 2:
+                    # Open long chain
+                    olcs.append(length)
+                else:
+                    nolcs.append(length)
+
+        if len(olcs) == 0:
+            ov = 0
+        else:
+            ov = sum(olcs) - 4 * len(olcs) + 4
+
+        if debug:
+            print(f"noscs: {noscs}")
+            print(f"oscs: {oscs}")
+            print(f"nolcs: {nolcs}")
+            print(f"olcs: {olcs}")
+
+        return sum(noscs) - sum(oscs) + sum(nolcs) - ov
+
+    def loop_value(self):
+        # type: () -> int
+
+        if self.dirty:
+            self.calculate_chains()
+
+        v = 0
+        for loop in self.loops:
+            v -= len(loop)
+
+        return v
 
     def squares(self, player):
         # type: (Player) -> int
@@ -208,6 +286,9 @@ class PseudoBoard:
     def calculate_chains(self):
         # type: () -> int
 
+        self.chains = []
+        self.loops = []
+
         tiles = self.chainable_tiles()
         flags = PseudoBoard.generate_flags()
         chains = []
@@ -227,10 +308,12 @@ class PseudoBoard:
                         chains.append(chain)
 
         for chain in chains:
-            if self.connected(chain[0], chain[-1]):
+            if len(chain) >= 4 and self.connected(chain[0], chain[-1]):
                 self.loops.append(chain)
             else:
                 self.chains.append(chain)
+
+        self.dirty = False
 
     def expand_chain(self, start, flags):
         # type: (Tile, Flag) -> Chain
@@ -246,6 +329,9 @@ class PseudoBoard:
             if self.chainable(neighbor):
                 chainables += 1
 
+        if chainables == 0:
+            return []
+
         if chainables > 1:
             repeat = 2
 
@@ -255,7 +341,9 @@ class PseudoBoard:
 
                 for neighbor in neighbors:
                     (x, y) = neighbor
-                    if not flags[x][y] or not self.connected(tile, neighbor):
+                    if not flags[x][y] or \
+                            not self.connected(tile, neighbor) or \
+                            not self.chainable(neighbor):
                         continue
 
                     flags[x][y] = False

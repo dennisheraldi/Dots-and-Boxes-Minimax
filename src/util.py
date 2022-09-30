@@ -7,4 +7,5 @@ def unreachable(message):
 
 
 DEBUG = False
+VERBOSE = False
 LOG_TIME = True
