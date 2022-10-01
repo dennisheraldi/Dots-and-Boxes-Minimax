@@ -181,6 +181,7 @@ class PseudoBoard:
 
         noscs = []
         oscs = []
+        hoscs = []
         nolcs = []
         olcs = []
 
@@ -196,6 +197,8 @@ class PseudoBoard:
                 if a == 2 and b == 2:
                     # Open short chain
                     oscs.append(length)
+                elif a == 2 or b == 2:
+                    hoscs.append(length)
                 else:
                     noscs.append(length)
             else:
@@ -204,6 +207,8 @@ class PseudoBoard:
                     olcs.append(length)
                 else:
                     nolcs.append(length)
+
+        fac = -1 ** len(hoscs)
 
         if len(olcs) == 0:
             ov = 0
@@ -216,7 +221,7 @@ class PseudoBoard:
             print(f"nolcs: {nolcs}")
             print(f"olcs: {olcs}")
 
-        return sum(noscs) - sum(oscs) + sum(nolcs) - ov
+        return sum(noscs) + sum(hoscs) - sum(oscs) + sum(nolcs) - ov * fac
 
     def loop_value(self):
         # type: () -> int
