@@ -13,14 +13,15 @@ class LocalSearchAgent:
     turn: Player
 
     max_depth: int
-
     evaluated: int
+    randomize: bool
 
-    def __init__(self, state, turn):
-        # type: (GameState, Player) -> None
+    def __init__(self, state, turn, randomize=False):
+        # type: (GameState, Player, bool) -> None
 
         self.board = PseudoBoard.of(state)
         self.turn = turn
+        self.randomize = randomize
 
     def search(self):
         # type: () -> Tuple[Move, int]
@@ -28,7 +29,7 @@ class LocalSearchAgent:
         best_eval = -9
         move = None
 
-        for (orientation, position) in self.board.available_moves():
+        for (orientation, position) in self.board.available_moves(self.randomize):
             self.board.play(orientation, position)
 
             _eval = self.board.eval(self.turn)
@@ -50,6 +51,12 @@ class LocalSearchAgent:
 
 class LocalSearchBot(Bot):
 
+    randomize: bool
+
+    def __init__(self, randomize=False):
+        # type: (bool) -> None
+        self.randomize = randomize
+
     def get_action(self, state):
         # type: (GameState) -> GameAction
 
@@ -62,7 +69,7 @@ class LocalSearchBot(Bot):
         else:
             turn = Player.EVEN
 
-        agent = LocalSearchAgent(state, turn)
+        agent = LocalSearchAgent(state, turn, self.randomize)
         move, val = agent.search()
 
         if DEBUG:

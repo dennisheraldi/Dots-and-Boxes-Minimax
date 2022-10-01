@@ -18,14 +18,15 @@ class MinimaxAgent:
     turn: Player
 
     max_depth: int
-
     evaluated: int
+    randomize: bool
 
-    def __init__(self, state, turn):
-        # type: (GameState, Player) -> None
+    def __init__(self, state, turn, randomize=False):
+        # type: (GameState, Player, bool) -> None
 
         self.board = PseudoBoard.of(state)
         self.turn = turn
+        self.randomize = randomize
 
     def search(self, max_depth):
         # type: (int) -> Tuple[Move, int]
@@ -66,12 +67,12 @@ class MinimaxAgent:
             unreachable("Agent should not call _max for opponent.")
 
         if board.ended() or depth == self.max_depth:
-            return (None, board.minimax(self.turn))
+            return (None, board.eval(self.turn))
 
         action = None
         v = MIN
 
-        for (orientation, position) in board.available_moves():
+        for (orientation, position) in board.available_moves(self.randomize):
 
             past_player = board.player_to_play()
             new_state = board.play(orientation, position)
@@ -109,12 +110,12 @@ class MinimaxAgent:
             unreachable("Agent should not call _min for self.")
 
         if board.ended() or depth == self.max_depth:
-            return (None, board.minimax(self.turn))
+            return (None, board.eval(self.turn))
 
         action = None
         v = MAX
 
-        for (orientation, position) in board.available_moves():
+        for (orientation, position) in board.available_moves(self.randomize):
             past_player = board.player_to_play()
             new_state = board.play(orientation, position)
 
@@ -144,6 +145,12 @@ class MinimaxAgent:
 
 class MinimaxBot(Bot):
 
+    randomize: bool
+
+    def __init__(self, randomize=False):
+        # type: (bool) -> None
+        self.randomize = randomize
+
     def get_action(self, state):
         # type: (GameState) -> GameAction
 
@@ -156,7 +163,7 @@ class MinimaxBot(Bot):
         else:
             turn = Player.EVEN
 
-        agent = MinimaxAgent(state, turn)
+        agent = MinimaxAgent(state, turn, self.randomize)
         move, val = agent.search(DEPTH)
 
         if DEBUG:

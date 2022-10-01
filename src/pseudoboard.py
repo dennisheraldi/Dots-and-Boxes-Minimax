@@ -1,3 +1,4 @@
+from random import shuffle
 from typing import Literal, Tuple
 import numpy as np
 from GameState import GameState
@@ -247,8 +248,8 @@ class PseudoBoard:
 
         return squares
 
-    def available_moves(self):
-        # type: () -> Moves
+    def available_moves(self, randomize=False):
+        # type: (bool) -> Moves
 
         moves = []
 
@@ -261,6 +262,9 @@ class PseudoBoard:
             for y in range(4):
                 if not self.col_status[x, y]:
                     moves.append(("col", (x, y)))
+
+        if randomize:
+            shuffle(moves)
 
         return moves
 
