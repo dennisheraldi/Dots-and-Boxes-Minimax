@@ -6,6 +6,6 @@ def unreachable(message):
     raise RuntimeError(message)
 
 
-DEBUG = False
+DEBUG = True
 VERBOSE = False
 LOG_TIME = True

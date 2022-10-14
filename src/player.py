@@ -5,6 +5,7 @@ class Player(Enum):
     ODD = 0
     EVEN = 1
 
+    @staticmethod
     def of(value):
         match value:
             case -4: return Player.ODD

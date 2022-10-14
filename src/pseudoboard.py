@@ -22,6 +22,7 @@ class PseudoBoard:
     loops: list[list[Tile]]
     chains: list[list[Tile]]
     dirty: bool
+    chain_part: list[bool]
 
     move_stack: Moves
     square_stack: list[Tuple[list[Position], Player]]
@@ -41,6 +42,7 @@ class PseudoBoard:
         self.loops = []
         self.chains = []
         self.dirty = True
+        self.chain_part = [False for _ in range(9)]
 
         self.move_stack = []
         self.square_stack = []
@@ -72,6 +74,7 @@ class PseudoBoard:
 
         return rep
 
+    @staticmethod
     def of(state):
         # type: (GameState) -> PseudoBoard
 
@@ -149,6 +152,10 @@ class PseudoBoard:
 
         self.player1_turn = not self.player1_turn
 
+    def objective(self, player, use_eval=False):
+        # type: (Player, bool) -> int
+        return self.eval(player) if use_eval else self.utility(player)
+
     def eval(self, player):
         # type: (Player) -> int
 
@@ -158,7 +165,7 @@ class PseudoBoard:
             self.chain_value() + self.free_squares() + self.loop_value()
         ) * factor
 
-    def minimax(self, player):
+    def utility(self, player):
         # type: (Player) -> int
 
         return self.squares(player) - self.squares(player.opponent())
@@ -169,13 +176,13 @@ class PseudoBoard:
         sq = 0
         for x in range(3):
             for y in range(3):
-                if self.openings_count((x, y)) == 1:
+                if self.openings_count((x, y)) == 1 and not self.chain_part[3 * x + y]:
                     sq += 1
 
         return sq
 
-    def chain_value(self, debug=False):
-        # type: (bool) -> int
+    def chain_value(self):
+        # type: () -> int
 
         if self.dirty:
             self.calculate_chains()
@@ -215,12 +222,6 @@ class PseudoBoard:
             ov = 0
         else:
             ov = sum(olcs) - 4 * len(olcs) + 4
-
-        if debug:
-            print(f"noscs: {noscs}")
-            print(f"oscs: {oscs}")
-            print(f"nolcs: {nolcs}")
-            print(f"olcs: {olcs}")
 
         return sum(noscs) + sum(hoscs) - sum(oscs) + sum(nolcs) - ov * fac
 
@@ -296,6 +297,7 @@ class PseudoBoard:
         # type: () -> int
 
         self.chains = []
+        self.chain_part = [False for _ in range(9)]
         self.loops = []
 
         tiles = self.chainable_tiles()
@@ -314,6 +316,9 @@ class PseudoBoard:
                     flags[x][y] = False
                     chain = self.expand_chain(tile, flags)
                     if len(chain) >= 2:
+                        for tile in chain:
+                            (x, y) = tile
+                            self.chain_part[3 * x + y] = True
                         chains.append(chain)
 
         for chain in chains:
@@ -459,7 +464,7 @@ class PseudoBoard:
 
         (x, y) = tile
 
-        return x >= 0 and x < 3 and y >= 0 and y < 3
+        return 0 <= x < 3 and 0 <= y < 3
 
 
 def h_line(cond):
