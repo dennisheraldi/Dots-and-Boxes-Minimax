@@ -1,44 +1,48 @@
 from random import randint
 from time import time
-from typing import Tuple
-from Bot import Bot
-from pseudoboard import PseudoBoard, Move
-from GameState import GameState
-from GameAction import GameAction
-from player import Player
-from util import DEBUG, LOG_TIME, VERBOSE
-from logger import LOGGER
 
-class LocalSearchAgent:
+from agent import Agent
+from Bot import Bot
+from datatypes import Eval, Move
+from GameAction import GameAction
+from GameState import GameState
+from logger import LOGGER
+from player import Player
+from pseudoboard import PseudoBoard
+
+
+class LocalSearchAgent(Agent):
     board: PseudoBoard
     turn: Player
 
     evaluated: int
     use_eval: bool
 
-    def __init__(self, state, turn, use_eval=True):
-        # type: (GameState, Player, bool, bool) -> None
-
-        self.board = PseudoBoard.of(state)
+    def __init__(self, state: GameState, turn: Player, use_eval=True):
+        self.board = PseudoBoard(state)
         self.turn = turn
         self.use_eval = use_eval
 
-    def search(self):
-        # type: () -> Tuple[Move, int]
-
+    def search(self) -> Eval:
         best_eval = -99
-        move = None
+        move: Move = None
 
         # Store possible moves info
         possible_move = self.board.available_moves()
-        
-        # Iterate 70% of the possible moves 
-        for i in range(int(0.7*len(possible_move))-1):
+
+        # Iterate 70% of the possible moves
+        for _ in range(int(0.7 * len(possible_move)) - 1):
             # Get random next move
-            (orientation, position) = possible_move[randint(0, len(possible_move)-1)]
+            (orientation, position) = possible_move[
+                randint(0, len(possible_move) - 1)
+            ]
 
             # Delete the selected move from the list
-            possible_move = tuple(x for x in possible_move if x != (orientation, position))
+            possible_move = tuple(
+                mov
+                for mov in possible_move
+                if mov != Move(orientation, position)
+            )
 
             # Move to the state of selected move
             self.board.play(orientation, position)
@@ -47,10 +51,9 @@ class LocalSearchAgent:
             _eval = self.board.objective(self.turn, self.use_eval)
             if _eval > best_eval:
                 best_eval = _eval
-                move = (orientation, position)
+                move = Move(orientation, position)
 
             self.board.revert()
-
 
         for (orientation, position) in self.board.available_moves(True):
             self.board.play(orientation, position)
@@ -58,18 +61,28 @@ class LocalSearchAgent:
             _eval = self.board.objective(self.turn, self.use_eval)
             if _eval > best_eval:
                 best_eval = _eval
-                move = (orientation, position)
+                move = Move(orientation, position)
 
             self.board.revert()
 
         if LOGGER.is_debug() and LOGGER.is_verbose():
             self.board.play(move[0], move[1])
-            LOGGER.debug(f"Free squares: {self.board.free_squares()}", verbose=True)
-            LOGGER.debug(f"Chains: {len(self.board.get_chains())}", verbose=True)
-            LOGGER.debug(f"Loops: {len(self.board.get_loops())}", verbose=True)
+            LOGGER.debug(
+                f'Free squares: {self.board.free_squares()}',
+                verbose=True,
+            )
+            LOGGER.debug(
+                f'Chains: {len(self.board.chains)}',
+                verbose=True,
+            )
+            LOGGER.debug(
+                f'Loops: {len(self.board.loops)}',
+                verbose=True,
+            )
             self.board.revert()
 
-        return move, best_eval
+        move = Move(move.orientation, move.position[::-1])
+        return Eval(move, best_eval)
 
 
 class LocalSearchBot(Bot):
@@ -86,14 +99,15 @@ class LocalSearchBot(Bot):
         start = time()
 
         if state.player1_turn:
-            turn = Player.ODD
+            turn = Player.odd
         else:
-            turn = Player.EVEN
+            turn = Player.even
 
         agent = LocalSearchAgent(state, turn, self.use_eval)
-        move, val = agent.search()
+        move, val_node = agent.search()
 
-        LOGGER.debug(f"Best move: {move}. Eval: {val}")
-        LOGGER.perf(f"Thinking time: {round(time() - start, 2)}s")
+        dur = round(time() - start, 2)
+        LOGGER.debug(f'Best move: {move}. Eval: {val_node}')
+        LOGGER.perf(f'Thinking time: {dur}s')
 
-        return GameAction(move[0], (move[1][1], move[1][0]))
+        return GameAction(move.orientation, move.position)

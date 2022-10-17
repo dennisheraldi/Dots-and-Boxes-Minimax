@@ -4,15 +4,14 @@
 # Modified by GaIB 19 Assistants
 
 from tkinter import *
-import numpy as np
 from typing import Optional
+
+import numpy as np
+
 from Bot import Bot
 from GameState import GameState
-
-# * Import your bot
-from RandomBot import RandomBot
-from minimax_agent import MinimaxBot
 from local_search_agent import LocalSearchBot
+from minimax_agent import MinimaxBot
 
 size_of_board = 600
 number_of_dots = 4
@@ -80,7 +79,6 @@ class Dots_and_Boxes():
         x = logical_position[0]
         y = logical_position[1]
         occupied = True
-
         if type == 'row' and self.row_status[y][x] == 0:
             occupied = False
         if type == 'col' and self.col_status[y][x] == 0:
@@ -316,13 +314,13 @@ class Dots_and_Boxes():
             self.window.after(BOT_TURN_INTERVAL_MS, self.bot_turn, current_bot)
 
     def bot_turn(self, bot: Bot):
-        action = bot.get_action(GameState(
+        state = GameState(
             self.board_status.copy(),
             self.row_status.copy(),
             self.col_status.copy(),
             self.player1_turn
-        ))
-
+        )
+        action = bot.get_action(state)
         self.update(action.action_type, action.position)
 
 

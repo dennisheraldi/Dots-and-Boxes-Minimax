@@ -1,41 +1,49 @@
-from time import time
-from typing import Tuple
-from Bot import Bot
-from pseudoboard import PseudoBoard, Move
-from GameState import GameState
-from GameAction import GameAction
-from player import Player
-from util import DEBUG, LOG_TIME, unreachable
-from logger import LOGGER
+"""MiniMax Agent definitions."""
 import math
+from time import time
+
+from agent import Agent
+from Bot import Bot
+from datatypes import Eval, Move
+from GameAction import GameAction
+from GameState import GameState
+from logger import LOGGER
+from player import Player
+from pseudoboard import PseudoBoard
+from util import unreachable
 
 MAX = math.inf
 MIN = -math.inf
 DEPTH = 8
 
 
-class MinimaxAgent:
-    board: PseudoBoard
-    turn: Player
+class MinimaxAgent(Agent):
+    """MiniMax agent class definition."""
 
-    max_depth: int
-    evaluated: int
-    randomize: bool
-    use_eval: bool
+    def __init__(self, state: GameState, randomize=False, use_eval=True):
+        """Initialize the agent.
 
-    def __init__(self, state, turn, randomize=False, use_eval=True):
-        # type: (GameState, Player, bool, bool) -> None
-
-        self.board = PseudoBoard.of(state)
-        self.turn = turn
+        Args:
+            state (GameState): The initial state of the game.
+            randomize (bool, optional): Randomize the neighbor.
+                Defaults to False.
+            use_eval (bool, optional): Use heuristics to eval.
+                Defaults to True.
+        """
+        self.board = PseudoBoard(state)
+        self.player: Player = Player.of(state.player1_turn)
         self.randomize = randomize
         self.use_eval = use_eval
 
-    def search(self, max_depth):
-        # type: (int) -> Tuple[Move, int]
+    def search(self, max_depth: int) -> Eval:
+        """Search for the best move.
 
-        alpha = MIN
-        beta = MAX
+        Args:
+            max_depth (int): The maximum depth to search.
+
+        Returns:
+            Eval: The best move and its score.
+        """
         self.max_depth = max_depth
         self.evaluated = 0
 
@@ -49,114 +57,84 @@ class MinimaxAgent:
         else:
             self.max_depth = 8
 
-        res = self._max(self.board, alpha, beta, 0)
-        LOGGER.debug(f"Evaluated {self.evaluated} states")
+        res = self.minimax(self.board, MIN, MAX, 0)
+        LOGGER.debug(f'Evaluated {self.evaluated} states')
         return res
 
-    def _max(self, board, alpha, beta, depth):
-        # type: (PseudoBoard, float, float, int) ->  Tuple[Move, int]
-
+    def minimax(
+        self,
+        board: PseudoBoard,
+        alpha: float,
+        beta: float,
+        depth: int,
+        is_max: bool = True,
+    ) -> Eval:
         self.evaluated += 1
-
         # Guard
-        if self.turn != board.player_to_play():
-            unreachable("Agent should not call _max for opponent.")
+        if self.player != board.player:
+            if is_max:
+                unreachable('Agent should not call max for opponent.')
+        elif not is_max:
+            unreachable('Agent should not call min for self.')
 
+        # Is leaf or depth exceeded
         if board.ended() or depth == self.max_depth:
-            return None, board.objective(self.turn, self.use_eval)
+            return Eval(
+                move=None,
+                score=board.objective(self.player, self.use_eval),
+            )
 
-        action = None
-        v = MIN
+        # Initial values
+        action: Move = None
+        curr_val = MIN if is_max else MAX
 
+        # Iterate over all possible moves
         for (orientation, position) in board.available_moves(self.randomize):
+            # Save current player and generate new state based on selected move
+            past_player = board.player
+            board.play(orientation, position)
 
-            past_player = board.player_to_play()
-            new_state = board.play(orientation, position)
-
-            if past_player == new_state.player_to_play():
-                fn = self._max
-            else:
-                fn = self._min
-
-            _, val = fn(new_state, alpha, beta, depth + 1)
+            # Do minimax over the child with increased depth
+            cond_max = past_player == board.player and is_max
+            _, node_val = self.minimax(
+                board,
+                alpha,
+                beta,
+                depth + 1,
+                cond_max or (not is_max and past_player != board.player),
+            )
+            # Revert board
             board.revert()
 
-            if val > v:
-                action = (orientation, position)
-                v = val
-
-            if v >= beta:
-                return (orientation, position), v
-
-            if v > alpha:
-                alpha = v
-
-        return action, v
-
-    def _min(self, board, alpha, beta, depth):
-        # type: (PseudoBoard, float, float, int) -> Tuple[Move, int]
-
-        self.evaluated += 1
-
-        # Guard
-        if self.turn == board.player_to_play():
-            unreachable("Agent should not call _min for self.")
-
-        if board.ended() or depth == self.max_depth:
-            return None, board.objective(self.turn, self.use_eval)
-
-        action = None
-        v = MAX
-
-        for (orientation, position) in board.available_moves(self.randomize):
-            past_player = board.player_to_play()
-            new_state = board.play(orientation, position)
-
-            if past_player == new_state.player_to_play():
-                fn = self._min
+            # Update action based on generated val and current v
+            if is_max:
+                if node_val > curr_val:
+                    action = Move(orientation, position)
+                    curr_val = node_val
+                alpha = max(curr_val, alpha)
             else:
-                fn = self._max
+                if node_val < curr_val:
+                    action = Move(orientation, position)
+                    curr_val = node_val
+                beta = min(curr_val, beta)
 
-            _, val = fn(new_state, alpha, beta, depth + 1)
-            board.revert()
-
-            if val < v:
-                action = (orientation, position)
-                v = val
-
-            if v <= alpha:
-                return (orientation, position), v
-
-            if v < beta:
-                beta = v
-
-        return action, v
+            # Alpha beta pruning
+            if beta <= alpha:
+                break
+        action = Move(action.orientation, action.position[::-1])
+        return Eval(move=action, score=curr_val)
 
 
 class MinimaxBot(Bot):
-
-    randomize: bool
-    use_eval: bool
-
     def __init__(self, randomize=False, use_eval=True):
-        # type: (bool, bool) -> None
         self.randomize = randomize
         self.use_eval = use_eval
 
-    def get_action(self, state):
-        # type: (GameState) -> GameAction
-
+    def get_action(self, state: GameState) -> GameAction:
         start = time()
-
-        if state.player1_turn:
-            turn = Player.ODD
-        else:
-            turn = Player.EVEN
-
-        agent = MinimaxAgent(state, turn, self.randomize)
-        move, val = agent.search(DEPTH)
-
-        LOGGER.debug(f"Best move: {move}. Eval: {val}")
-        LOGGER.perf(f"Thinking time: {round(time() - start, 2)}s")
-
-        return GameAction(move[0], (move[1][1], move[1][0]))
+        agent = MinimaxAgent(state, self.randomize)
+        move, evaluate = agent.search(DEPTH)
+        dur = round(time() - start, 2)
+        LOGGER.debug(f'Best move: {move}. Eval: {evaluate}')
+        LOGGER.perf(f'Thinking time: {dur}s')
+        return GameAction(move[0], move[1])

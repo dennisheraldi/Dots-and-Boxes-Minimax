@@ -1,8 +1,12 @@
 from typing import NamedTuple
+
 from numpy import ndarray
+
 
 class GameState(NamedTuple):
     """
+    A class representing the state of the game.
+
     board_status: int[][]
         For each element, if its absolute element is four, then
         the square has been taken by a player. If element's sign
@@ -17,7 +21,7 @@ class GameState(NamedTuple):
     col_status: int[][]
         Represent the vertical line mark status: 1 for marked, 0 for not.
         Access: col_status[y, x]
-        
+
     player1_turn: bool
         True if it is player 1 turn, False for player 2.
     """
@@ -26,3 +30,6 @@ class GameState(NamedTuple):
     row_status: ndarray
     col_status: ndarray
     player1_turn: bool
+
+    def status(self, orient):
+        return getattr(self, orient + '_status')
