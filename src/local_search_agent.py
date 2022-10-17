@@ -13,7 +13,6 @@ class LocalSearchAgent:
     board: PseudoBoard
     turn: Player
 
-    max_depth: int
     evaluated: int
     randomize: bool
     use_eval: bool
