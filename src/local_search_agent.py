@@ -14,7 +14,6 @@ class LocalSearchAgent:
     turn: Player
 
     evaluated: int
-    randomize: bool
     use_eval: bool
 
     def __init__(self, state, turn, use_eval=True):
@@ -75,7 +74,6 @@ class LocalSearchAgent:
 
 class LocalSearchBot(Bot):
 
-    randomize: bool
     use_eval: bool
 
     def __init__(self, use_eval=True):
