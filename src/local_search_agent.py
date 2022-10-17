@@ -1,3 +1,4 @@
+from random import randint
 from time import time
 from typing import Tuple
 from Bot import Bot
@@ -17,12 +18,11 @@ class LocalSearchAgent:
     randomize: bool
     use_eval: bool
 
-    def __init__(self, state, turn, randomize=False, use_eval=True):
+    def __init__(self, state, turn, use_eval=True):
         # type: (GameState, Player, bool, bool) -> None
 
         self.board = PseudoBoard.of(state)
         self.turn = turn
-        self.randomize = randomize
         self.use_eval = use_eval
 
     def search(self):
@@ -31,7 +31,30 @@ class LocalSearchAgent:
         best_eval = -99
         move = None
 
-        for (orientation, position) in self.board.available_moves(self.randomize):
+        # Store possible moves info
+        possible_move = self.board.available_moves()
+        
+        # Iterate 70% of the possible moves 
+        for i in range(int(0.7*len(possible_move))-1):
+            # Get random next move
+            (orientation, position) = possible_move[randint(0, len(possible_move)-1)]
+
+            # Delete the selected move from the list
+            possible_move = tuple(x for x in possible_move if x != (orientation, position))
+
+            # Move to the state of selected move
+            self.board.play(orientation, position)
+
+            # Evaluate the state
+            _eval = self.board.objective(self.turn, self.use_eval)
+            if _eval > best_eval:
+                best_eval = _eval
+                move = (orientation, position)
+
+            self.board.revert()
+
+
+        for (orientation, position) in self.board.available_moves(True):
             self.board.play(orientation, position)
 
             _eval = self.board.objective(self.turn, self.use_eval)
@@ -56,9 +79,8 @@ class LocalSearchBot(Bot):
     randomize: bool
     use_eval: bool
 
-    def __init__(self, randomize=False, use_eval=True):
+    def __init__(self, use_eval=True):
         # type: (bool, bool) -> None
-        self.randomize = randomize
         self.use_eval = use_eval
 
     def get_action(self, state):
@@ -71,7 +93,7 @@ class LocalSearchBot(Bot):
         else:
             turn = Player.EVEN
 
-        agent = LocalSearchAgent(state, turn, self.randomize, self.use_eval)
+        agent = LocalSearchAgent(state, turn, self.use_eval)
         move, val = agent.search()
 
         LOGGER.debug(f"Best move: {move}. Eval: {val}")
