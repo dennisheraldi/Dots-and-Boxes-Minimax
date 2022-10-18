@@ -14,7 +14,6 @@ from util import unreachable
 
 MAX = math.inf
 MIN = -math.inf
-DEPTH = 8
 
 
 class MinimaxAgent(Agent):
@@ -30,12 +29,13 @@ class MinimaxAgent(Agent):
             use_eval (bool, optional): Use heuristics to eval.
                 Defaults to True.
         """
+        super().__init__()
         self.board = PseudoBoard(state)
         self.player: Player = Player.of(state.player1_turn)
         self.randomize = randomize
         self.use_eval = use_eval
 
-    def search(self, max_depth: int) -> Eval:
+    def _search(self) -> Eval:
         """Search for the best move.
 
         Args:
@@ -44,7 +44,6 @@ class MinimaxAgent(Agent):
         Returns:
             Eval: The best move and its score.
         """
-        self.max_depth = max_depth
         self.evaluated = 0
 
         moves = len(self.board.available_moves())
@@ -52,7 +51,7 @@ class MinimaxAgent(Agent):
             self.max_depth = 4
         elif moves > 14:
             self.max_depth = 5
-        elif moves > 11:
+        elif moves > 10:
             self.max_depth = 6
         else:
             self.max_depth = 8
@@ -90,6 +89,10 @@ class MinimaxAgent(Agent):
 
         # Iterate over all possible moves
         for (orientation, position) in board.available_moves(self.randomize):
+            # Move
+            if self.timeout:
+                break
+
             # Save current player and generate new state based on selected move
             past_player = board.player
             board.play(orientation, position)
@@ -121,7 +124,6 @@ class MinimaxAgent(Agent):
             # Alpha beta pruning
             if beta <= alpha:
                 break
-        action = Move(action.orientation, action.position[::-1])
         return Eval(move=action, score=curr_val)
 
 
@@ -133,7 +135,7 @@ class MinimaxBot(Bot):
     def get_action(self, state: GameState) -> GameAction:
         start = time()
         agent = MinimaxAgent(state, self.randomize)
-        move, evaluate = agent.search(DEPTH)
+        move, evaluate = agent.search()
         dur = round(time() - start, 2)
         LOGGER.debug(f'Best move: {move}. Eval: {evaluate}')
         LOGGER.perf(f'Thinking time: {dur}s')

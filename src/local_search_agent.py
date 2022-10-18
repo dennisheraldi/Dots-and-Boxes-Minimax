@@ -12,6 +12,7 @@ from pseudoboard import PseudoBoard
 
 
 class LocalSearchAgent(Agent):
+    """Local search agent class definition"""
     board: PseudoBoard
     turn: Player
 
@@ -19,11 +20,23 @@ class LocalSearchAgent(Agent):
     use_eval: bool
 
     def __init__(self, state: GameState, turn: Player, use_eval=True):
+        """Initialize the agent
+
+        Args:
+            state (GameState): The initial state of the game
+            turn (Player): Get the turn of player
+            use_eval (bool, optional): Use heuristics to eval. Defaults to True.
+        """
         self.board = PseudoBoard(state)
         self.turn = turn
         self.use_eval = use_eval
 
-    def search(self) -> Eval:
+    def _search(self) -> Eval:
+        """Search for the best move
+
+        Returns:
+            Eval: The best move and its score. 
+        """
         best_eval = -99
         move: Move = None
 
@@ -32,6 +45,10 @@ class LocalSearchAgent(Agent):
 
         # Iterate 70% of the possible moves
         for _ in range(int(0.7 * len(possible_move)) - 1):
+
+            if self.timeout:
+                break
+
             # Get random next move
             (orientation, position) = possible_move[
                 randint(0, len(possible_move) - 1)
@@ -55,16 +72,6 @@ class LocalSearchAgent(Agent):
 
             self.board.revert()
 
-        for (orientation, position) in self.board.available_moves(True):
-            self.board.play(orientation, position)
-
-            _eval = self.board.objective(self.turn, self.use_eval)
-            if _eval > best_eval:
-                best_eval = _eval
-                move = Move(orientation, position)
-
-            self.board.revert()
-
         if LOGGER.is_debug() and LOGGER.is_verbose():
             self.board.play(move[0], move[1])
             LOGGER.debug(
@@ -81,19 +88,31 @@ class LocalSearchAgent(Agent):
             )
             self.board.revert()
 
-        move = Move(move.orientation, move.position[::-1])
         return Eval(move, best_eval)
 
 
 class LocalSearchBot(Bot):
-
+    """Local Search Bot class definition"""
     use_eval: bool
 
     def __init__(self, use_eval=True):
+        """Initialize local search bot 
+
+        Args:
+            use_eval (bool, optional): Use heuristics to eval. Defaults to True.
+        """
         # type: (bool, bool) -> None
         self.use_eval = use_eval
 
     def get_action(self, state):
+        """Get action of game state
+
+        Args:
+            state (_type_): State of the game
+
+        Returns:
+            _type_: Game action 
+        """
         # type: (GameState) -> GameAction
 
         start = time()
