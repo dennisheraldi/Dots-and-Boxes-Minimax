@@ -1,4 +1,5 @@
-from typing import NamedTuple, Literal, Tuple
+from typing import Literal, NamedTuple, Tuple
+
 
 class GameAction(NamedTuple):
     """

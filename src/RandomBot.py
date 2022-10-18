@@ -1,8 +1,11 @@
+import random
+
+import numpy as np
+
 from Bot import Bot
 from GameAction import GameAction
 from GameState import GameState
-import random
-import numpy as np
+
 
 class RandomBot(Bot):
     def get_action(self, state: GameState) -> GameAction:
