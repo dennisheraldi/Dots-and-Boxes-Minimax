@@ -40,34 +40,15 @@ class LocalSearchAgent(Agent):
         best_eval = -99
         move: Move = None
 
-        # Store possible moves info
-        possible_move = self.board.available_moves()
-
-        # Iterate 70% of the possible moves
-        for _ in range(int(0.7 * len(possible_move)) - 1):
-
+        for (orientation, position) in self.board.available_moves():
             if self.timeout:
                 break
 
-            # Get random next move
-            (orientation, position) = possible_move[
-                randint(0, len(possible_move) - 1)
-            ]
-
-            # Delete the selected move from the list
-            possible_move = tuple(
-                mov
-                for mov in possible_move
-                if mov != Move(orientation, position)
-            )
-
-            # Move to the state of selected move
             self.board.play(orientation, position)
 
-            # Evaluate the state
-            _eval = self.board.objective(self.turn, self.use_eval)
-            if _eval > best_eval:
-                best_eval = _eval
+            eval = self.board.objective(self.turn, self.use_eval)
+            if eval  > best_eval:
+                best_eval = eval
                 move = Move(orientation, position)
 
             self.board.revert()
