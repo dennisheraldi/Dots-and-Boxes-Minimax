@@ -1,4 +1,5 @@
 """Local search agent definition."""
+from random import randint
 from time import time
 
 from agent import Agent
@@ -35,17 +36,23 @@ class LocalSearchAgent(Agent):
         """
         best_eval = -99
         move: Move = None
-        
+
         # Store possible moves info
         possible_move = self.board.available_moves()
 
-        # Iterate over possible moves 
-        for _ in range(len(possible_move)):
+        # Iterate over possible moves
+        for _ in possible_move:
             # Get random next move
-            (orientation, position) = possible_move[randint(0, len(possible_move)-1)]
+            (orientation, position) = possible_move[
+                randint(0, len(possible_move) - 1)
+            ]
 
             # Delete the selected move from the list
-            possible_move = tuple(x for x in possible_move if x != (orientation, position))
+            possible_move = tuple(
+                x
+                for x in possible_move
+                if x != (orientation, position)
+            )
 
             # Move to the state of selected move
             self.board.play(orientation, position)
