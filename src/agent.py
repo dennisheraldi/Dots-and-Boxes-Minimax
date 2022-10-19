@@ -14,9 +14,17 @@ class Agent(object):
     """
 
     def __init__(self):
+        """Initialize the agent."""
         self.board: PseudoBoard = None
 
     def search(self) -> Eval:
+        """Return the evaluation result of the agent.
+
+        This should be called instead of _search().
+
+        Returns:
+            Eval: The evaluation result.
+        """
         self.timer = Timer(THINKING_TIME, self.force_stop)
         self.timeout = False
         self.timer.start()
@@ -30,18 +38,19 @@ class Agent(object):
             # return random move
             res = Eval(
                 move=rand_move,
-                score=0
+                score=0,
             )
 
         return Eval(
             move=Move(
                 orientation=res.move.orientation,
-                position=res.move.position[::-1]
+                position=res.move.position[::-1],
             ),
-            score=res.score
+            score=res.score,
         )
 
     def force_stop(self):
+        """Toggle timeout flag to True when timeout."""
         self.timeout = True
 
     def _search(self) -> Eval:

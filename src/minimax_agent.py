@@ -35,39 +35,26 @@ class MinimaxAgent(Agent):
         self.randomize = randomize
         self.use_eval = use_eval
 
-    def _search(self) -> Eval:
-        """Search for the best move.
-
-        Args:
-            max_depth (int): The maximum depth to search.
-
-        Returns:
-            Eval: The best move and its score.
-        """
-        self.evaluated = 0
-
-        moves = len(self.board.available_moves())
-        if moves > 18:
-            self.max_depth = 4
-        elif moves > 14:
-            self.max_depth = 5
-        elif moves > 10:
-            self.max_depth = 6
-        else:
-            self.max_depth = 8
-
-        res = self.minimax(self.board, MIN, MAX, 0)
-        LOGGER.debug(f'Evaluated {self.evaluated} states')
-        return res
-
     def minimax(
         self,
         board: PseudoBoard,
         alpha: float,
         beta: float,
         depth: int,
-        is_max: bool = True,
+        is_max=True,
     ) -> Eval:
+        """Recursive MiniMax algorithm.
+
+        Args:
+            board (PseudoBoard): The current board.
+            alpha (float): The alpha value.
+            beta (float): The beta value.
+            depth (int): The current depth.
+            is_max (bool, optional): Is maximize player. Defaults to True.
+
+        Returns:
+            Eval: The best move and its score.
+        """
         self.evaluated += 1
         # Guard
         if self.player != board.player:
@@ -126,13 +113,53 @@ class MinimaxAgent(Agent):
                 break
         return Eval(move=action, score=curr_val)
 
+    def _search(self) -> Eval:
+        """Search for the best move.
+
+        Returns:
+            Eval: The best move and its score.
+        """
+        self.evaluated = 0
+
+        moves = len(self.board.available_moves())
+        if moves > 18:
+            self.max_depth = 4
+        elif moves > 14:
+            self.max_depth = 5
+        elif moves > 10:
+            self.max_depth = 6
+        else:
+            self.max_depth = 8
+
+        res = self.minimax(self.board, MIN, MAX, 0)
+        LOGGER.debug(f'Evaluated {self.evaluated} states')
+        return res
+
 
 class MinimaxBot(Bot):
+    """Minimax bot class definition."""
+
     def __init__(self, randomize=False, use_eval=True):
+        """Initialize a minimax bot.
+
+        Args:
+            randomize (bool, optional): Randomize neighbor choice.
+                Defaults to False.
+            use_eval (bool, optional): Use heurisitics to evaluate.
+                Defaults to True.
+        """
         self.randomize = randomize
         self.use_eval = use_eval
 
     def get_action(self, state: GameState) -> GameAction:
+        """Get the next action for minimax bot.
+
+        Args:
+            state (GameState): The current state of the game.
+
+        Returns:
+            GameAction: The next action.
+        """
         start = time()
         agent = MinimaxAgent(state, self.randomize)
         move, evaluate = agent.search()

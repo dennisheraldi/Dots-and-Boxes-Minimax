@@ -232,7 +232,6 @@ class PseudoBoard(object):
             a = self.openings_count(end1)
             b = self.openings_count(end2)
             length = len(chain)
-            assert length >= 2
             if length == 2:
                 if a == 2 and b == 2:
                     # Open short chain

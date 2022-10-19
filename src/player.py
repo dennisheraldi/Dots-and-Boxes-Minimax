@@ -5,13 +5,13 @@ class Player(Enum):
     odd = 0
     even = 1
 
-    @staticmethod
-    def of(player_val):
+    @classmethod
+    def of(cls, player_val):
         match player_val:
-            case True: return Player.odd
-            case False: return Player.even
-            case -4: return Player.odd
-            case 4: return Player.even
+            case True: return cls.odd
+            case False: return cls.even
+            case -4: return cls.odd
+            case 4: return cls.even
             case _: return None
 
     def score(self):
